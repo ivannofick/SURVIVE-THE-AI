@@ -24,20 +24,20 @@ export function ChoiceButton({ text, risk, onClick, disabled }: ChoiceButtonProp
 
   return (
     <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "relative w-full p-4 rounded-xl border bg-zinc-900/40 text-left transition-all duration-300 group",
+        "relative w-full p-3 sm:p-4 rounded-xl border bg-zinc-900/40 text-left transition-all duration-300 group",
         disabled ? "opacity-50 cursor-not-allowed border-zinc-800" : borderColors[risk]
       )}
     >
-      <div className="flex flex-col gap-1">
-        <span className={cn("text-[10px] uppercase tracking-widest font-mono font-bold", riskColors[risk])}>
+      <div className="flex flex-col gap-0.5 sm:gap-1 pr-6">
+        <span className={cn("text-[8px] sm:text-[10px] uppercase tracking-widest font-mono font-bold", riskColors[risk])}>
           risiko {risk === 'low' ? 'rendah' : risk === 'medium' ? 'sedang' : 'tinggi'}
         </span>
-        <span className="text-zinc-100 font-medium group-hover:text-white transition-colors">
+        <span className="text-[13px] sm:text-sm text-zinc-100 font-medium group-hover:text-white transition-colors line-clamp-2">
           {text}
         </span>
       </div>

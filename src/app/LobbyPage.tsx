@@ -3,58 +3,81 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { PlayerCard } from '../components/game/PlayerCard';
-import { MOCK_PLAYERS } from '../mock-data';
 import { Player } from '../types';
 import { cn } from '../lib/utils';
+import { getRoom, getPlayers, updatePlayerReady, startRoom } from '../services/roomService';
 
 export default function LobbyPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const theme = searchParams.get('theme') || 'bunker';
+  const roomId = searchParams.get('roomId');
   const username = searchParams.get('username') || 'Survivor';
+  const userId = searchParams.get('userId');
   
-  const [players, setPlayers] = useState<Player[]>([{
-    id: '1',
-    username: username,
-    hp: 100,
-    hunger: 100,
-    sanity: 100,
-    trust: 100,
-    isReady: false,
-    isAlive: true,
-    avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`
-  }]);
+  const [room, setRoom] = useState<any>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [timer, setTimer] = useState(120);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!roomId) {
+      navigate('/setup');
+      return;
+    }
+
+    const unsubRoom = getRoom(roomId, (roomData) => {
+      setRoom(roomData);
+      if (roomData.status === 'playing') {
+        const theme = roomData.theme;
+        navigate(`/game?roomId=${roomId}&username=${encodeURIComponent(username)}&userId=${userId}&theme=${theme}`);
+      }
+    });
+
+    const unsubPlayers = getPlayers(roomId, (playersData) => {
+      setPlayers(playersData);
+      const me = playersData.find(p => p.id === userId);
+      if (me) setIsReady(me.isReady);
+    });
+
     const t = setInterval(() => {
       setTimer(prev => {
         if (prev <= 1) {
           clearInterval(t);
-          handleStart();
+          if (room?.hostId === userId) {
+             handleStart();
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(t);
-  }, []);
 
-  const handleStart = () => {
-    navigate(`/game?theme=${theme}&username=${encodeURIComponent(username)}`);
+    return () => {
+      unsubRoom();
+      unsubPlayers();
+      clearInterval(t);
+    };
+  }, [roomId, userId, navigate, username]);
+
+  const handleStart = async () => {
+    if (roomId && userId) {
+      await startRoom(roomId, userId);
+    }
   };
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText("XJ-901-B");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (room?.code) {
+      navigator.clipboard.writeText(room.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  const toggleReady = () => {
-    setIsReady(!isReady);
-    setPlayers(prev => prev.map(p => p.id === '1' ? { ...p, isReady: !isReady } : p));
+  const toggleReady = async () => {
+    if (roomId && userId) {
+      await updatePlayerReady(roomId, userId, !isReady);
+    }
   };
 
   return (
@@ -92,7 +115,7 @@ export default function LobbyPage() {
           </AnimatePresence>
           <div className="text-right">
             <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Sinyal Node</span>
-            <p className="text-2xl text-white font-mono font-bold tracking-tighter">XJ-901-B</p>
+            <p className="text-2xl text-white font-mono font-bold tracking-tighter">{room?.code || '...'}</p>
           </div>
           <button 
             onClick={handleCopyCode}
@@ -112,11 +135,11 @@ export default function LobbyPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AnimatePresence>
-              {players.map((player, i) => (
+              {players.map((player) => (
                 <PlayerCard 
                   key={player.id} 
                   player={player} 
-                  isHost={i === 0} 
+                  isHost={player.id === room?.hostId} 
                   className="animate-in fade-in slide-in-from-bottom-5 duration-700"
                 />
               ))}
@@ -167,13 +190,19 @@ export default function LobbyPage() {
                  {isReady ? 'Survivor Siap' : 'Tandai Siap'}
                </button>
                
-               <button 
-                onClick={handleStart}
-                disabled={!isReady}
-                className="w-full py-4 bg-neon-cyan text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-white transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-neon-cyan"
-               >
-                 Mulai Operasi
-               </button>
+               {room?.hostId === userId ? (
+                 <button 
+                  onClick={handleStart}
+                  disabled={!isReady}
+                  className="w-full py-4 bg-neon-cyan text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-white transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-neon-cyan"
+                 >
+                   Mulai Operasi
+                 </button>
+               ) : (
+                 <div className="py-4 text-center border border-zinc-800 rounded-xl bg-zinc-900/50">
+                    <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest animate-pulse">Menunggu Room Master...</span>
+                 </div>
+               )}
             </div>
           </GlassCard>
         </div>

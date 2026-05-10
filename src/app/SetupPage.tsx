@@ -1,9 +1,19 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GameTheme } from '../types';
 import { cn } from '../lib/utils';
+import { createRoom, joinRoom } from '../services/roomService';
+
+const getUserId = () => {
+  let id = localStorage.getItem('xj901_user_id');
+  if (!id) {
+    id = 'user_' + Math.random().toString(36).substring(2, 11);
+    localStorage.setItem('xj901_user_id', id);
+  }
+  return id;
+};
 
 export default function SetupPage() {
   const [searchParams] = useSearchParams();
@@ -13,11 +23,33 @@ export default function SetupPage() {
   const [username, setUsername] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [theme, setTheme] = useState<GameTheme>('bunker');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (username) {
-      navigate(`/lobby?theme=${theme}&username=${encodeURIComponent(username)}`);
+    if (!username) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    const userId = getUserId();
+    
+    try {
+      let roomId: string;
+      if (isJoin) {
+        if (!roomCode) throw new Error("Kode sinyal diperlukan.");
+        roomId = await joinRoom(roomCode, username, userId);
+      } else {
+        roomId = await createRoom(username, theme, userId);
+      }
+      
+      navigate(`/lobby?roomId=${roomId}&username=${encodeURIComponent(username)}&userId=${userId}`);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan koneksi.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -48,6 +80,11 @@ export default function SetupPage() {
             </button>
 
             <div className="space-y-4">
+              {error && (
+                <div className="p-3 bg-danger/10 border border-danger/20 rounded-xl text-danger text-[10px] font-mono uppercase text-center animate-shake">
+                  ERROR: {error}
+                </div>
+              )}
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono ml-1">
                   Identitas Survivor
@@ -111,9 +148,10 @@ export default function SetupPage() {
 
             <button 
               type="submit"
-              className="w-full py-4 bg-zinc-100 text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-neon-cyan transition-all shadow-lg active:scale-[0.98]"
+              disabled={isLoading}
+              className="w-full py-4 bg-zinc-100 text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-neon-cyan transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
             >
-              Inisialisasi Sinkronisasi
+              {isLoading ? 'SINKRONISASI...' : 'Inisialisasi Sinkronisasi'}
             </button>
 
             <button 

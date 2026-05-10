@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "A game session room",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "theme": { "type": "string" },
+        "status": { "type": "string", "enum": ["lobby", "playing", "ended"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "hostId": { "type": "string" },
+        "currentRound": { "type": "number" },
+        "timer": { "type": "number" },
+        "selectedChoiceId": { "type": "string" },
+        "isProcessing": { "type": "boolean" },
+        "currentChoices": { 
+          "type": "array",
+          "items": {
+             "type": "object",
+             "properties": {
+               "id": { "type": "string" },
+               "text": { "type": "string" },
+               "risk": { "type": "string" }
+             }
+          }
+        }
+      },
+      "required": ["code", "theme", "status", "createdAt", "hostId"]
+    },
+    "Player": {
+      "title": "Player",
+      "description": "A player in a room",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "avatar": { "type": "string" },
+        "isReady": { "type": "boolean" },
+        "isAlive": { "type": "boolean" },
+        "hp": { "type": "number" },
+        "hunger": { "type": "number" },
+        "sanity": { "type": "number" },
+        "trust": { "type": "number" }
+      },
+      "required": ["id", "username", "avatar", "isReady", "isAlive"]
+    },
+    "Narration": {
+      "title": "Narration",
+      "description": "A game narration message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["system", "action", "status", "warning", "ai"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "author": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Room metadata"
+    },
+    "rooms/{roomId}/players/{playerId}": {
+      "schema": "Player",
+      "description": "Players in the room"
+    },
+    "rooms/{roomId}/narrations/{narrationId}": {
+      "schema": "Narration",
+      "description": "Game logs and narrations"
+    }
+  }
+}

@@ -19,7 +19,7 @@ export function NarrationFeed({ narrations }: NarrationFeedProps) {
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 overflow-y-auto space-y-6 pr-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
+      className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 pr-2 sm:pr-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
     >
       <AnimatePresence mode="popLayout">
         {narrations.map((n, i) => (
@@ -28,11 +28,11 @@ export function NarrationFeed({ narrations }: NarrationFeedProps) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col gap-2"
+            className="flex flex-col gap-1 sm:gap-2"
           >
-            <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest uppercase">
+            <div className="flex items-center gap-2 text-[8px] sm:text-[10px] font-mono tracking-widest uppercase">
               <span className={cn(
-                "px-1.5 py-0.5 rounded",
+                "px-1 py-0.5 sm:px-1.5 rounded",
                 n.type === 'ai' ? "bg-neon-cyan/20 text-neon-cyan" : 
                 n.type === 'system' ? "bg-zinc-800 text-zinc-400" : 
                 "bg-danger/20 text-danger"
@@ -43,7 +43,7 @@ export function NarrationFeed({ narrations }: NarrationFeedProps) {
             </div>
             
             <p className={cn(
-              "text-sm leading-relaxed",
+              "text-[13px] sm:text-sm leading-relaxed",
               n.type === 'ai' ? "text-zinc-100" : "text-zinc-400",
               i === narrations.length - 1 && "text-glow-cyan"
             )}>

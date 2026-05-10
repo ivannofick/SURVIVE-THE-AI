@@ -15,6 +15,7 @@ export interface Narration {
   text: string;
   timestamp: string;
   type: 'system' | 'ai' | 'event';
+  author?: string;
 }
 
 export interface Choice {
