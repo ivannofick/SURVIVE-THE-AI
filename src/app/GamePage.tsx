@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -109,10 +109,13 @@ export default function GamePage() {
     }
   }, [timer, isProcessing, choices, isHost, roomId]);
 
+  const processingRef = useRef(false);
+
   const handleChoiceExecution = async (choiceId: string, currentChoicesOverride?: Choice[]) => {
-    if (!roomId || isProcessing) return;
+    if (!roomId || processingRef.current) return;
     
-    // Set processing locally and globally
+    processingRef.current = true;
+    // Set processing globally so others see the loading state
     await updateRoomGameState(roomId, { isProcessing: true, selectedChoiceId: choiceId });
     
     const activeChoices = currentChoicesOverride || choices;
@@ -145,15 +148,17 @@ export default function GamePage() {
       if (isHost) {
         await updateRoomGameState(roomId, { isProcessing: false, selectedChoiceId: null });
       }
+    } finally {
+      processingRef.current = false;
     }
   };
 
   // Host listener for selections from other players
   useEffect(() => {
-    if (isHost && room?.selectedChoiceId && !isProcessing) {
+    if (isHost && room?.selectedChoiceId && !processingRef.current) {
       handleChoiceExecution(room.selectedChoiceId);
     }
-  }, [isHost, room?.selectedChoiceId, isProcessing]);
+  }, [isHost, room?.selectedChoiceId]);
 
   useEffect(() => {
     if (room?.status === 'ended') {

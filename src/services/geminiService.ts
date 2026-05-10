@@ -16,36 +16,36 @@ export async function generateNextRound(
   theme: GameTheme = 'bunker'
 ): Promise<{ narration: string; nextChoices: Choice[] }> {
   const selectedChoice = choices.find(c => c.id === playerActionId);
-  const history = previousNarrations.map(n => `[${n.type.toUpperCase()}] ${n.text}`).join("\n");
+  const history = previousNarrations.slice(-5).map(n => `[${n.type.toUpperCase()}] ${n.text}`).join("\n");
 
   const prompt = `
     Kamu adalah XENON, narator AI sinematik dan menegangkan untuk game survival thriller multiplayer.
     Tema saat ini adalah: ${THEME_DESCRIPTIONS[theme]}
     
-    RIWAYAT SISTEM:
+    RIWAYAT TERBARU (Gunakan sebagai referensi konteks):
     ${history}
     
     TINDAKAN TERAKHIR PEMAIN:
     "${selectedChoice?.text || "Tindakan tidak dikenal"}" (Level risiko: ${selectedChoice?.risk || "tidak diketahui"})
     
     TUGAS:
-    1. Hasilkan narasi sinematik singkat (maks 3 kalimat) yang mendeskripsikan konsekuensi dari tindakan pemain sesuai dengan TEMA saat ini.
-    2. Sarankan 3 pilihan survival baru untuk ronde berikutnya dengan level risiko bervariasi (rendah, sedang, tinggi), pastikan pilihan tersebut sangat RELEVAN dengan TEMA saat ini.
+    1. Hasilkan narasi sinematik sangat singkat (maks 2 kalimat) yang mendeskripsikan konsekuensi SEGERA dari tindakan pemain.
+    2. Sarankan 3 pilihan survival baru untuk ronde berikutnya.
     
     RESPONSE FORMAT (JSON):
     {
-      "narration": "Teks narasi Anda di sini dalam Bahasa Indonesia.",
+      "narration": "Teks narasi singkat Bahasa Indonesia.",
       "nextChoices": [
-        { "id": "c1", "text": "Teks pilihan 1 dalam Bahasa Indonesia", "risk": "low" },
-        { "id": "c2", "text": "Teks pilihan 2 dalam Bahasa Indonesia", "risk": "medium" },
-        { "id": "c3", "text": "Teks pilihan 3 dalam Bahasa Indonesia", "risk": "high" }
+        { "id": "c1", "text": "Pilihan 1", "risk": "low" },
+        { "id": "c2", "text": "Pilihan 2", "risk": "medium" },
+        { "id": "c3", "text": "Pilihan 3", "risk": "high" }
       ]
     }
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -71,12 +71,19 @@ export async function generateNextRound(
       }
     });
 
+    if (!response.text) {
+      throw new Error("Empty response from Gemini");
+    }
+
     return JSON.parse(response.text);
   } catch (error) {
     console.error("Gemini Error:", error);
+    // Explicitly check for safety ratings or blocked content
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
     // Fallback if API fails
     return {
-      narration: "Sesuatu yang tak terduga terjadi. Kegelapan semakin pekat.",
+      narration: `Sesuatu yang tak terduga terjadi. ${errorMessage.includes('safety') ? 'XENON mendeteksi anomali transmisi (Konten diblokir).' : 'Kegelapan semakin pekat (API Error).'}`,
       nextChoices: [
         { id: "c1", text: "Terus maju.", risk: "low" },
         { id: "c2", text: "Berhenti dan dengarkan.", risk: "medium" },
